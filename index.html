@@ -3,43 +3,54 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>my-v2-index｜版本二：多局與猜測歷史</title>
+  <title>版本一與版本二合併｜幾 A 幾 B 遊戲與多局歷史</title>
   <script src="https://cdn.tailwindcss.com"></script>
 </head>
 <body class="bg-slate-100 min-h-screen p-6 flex flex-col items-center">
   <div class="max-w-xl w-full bg-white rounded-xl shadow-md p-6">
+    <!-- 頂部標題與除錯開關 -->
     <div class="flex justify-between items-center border-b pb-4 mb-4">
-      <h1 class="text-xl font-bold text-slate-800">版本二：多局與猜測歷史</h1>
-      <label class="flex items-center cursor-pointer text-sm font-medium text-slate-600">
+      <div>
+        <h1 class="text-xl font-bold text-slate-800">幾 A 幾 B 練習</h1>
+        <p class="text-xs text-slate-500">結合版本一（基本與驗證）與版本二（多局與猜測歷史）</p>
+      </div>
+      <label class="flex items-center cursor-pointer text-sm font-medium text-slate-600 bg-slate-50 px-3 py-1.5 rounded-lg border">
         <input type="checkbox" id="debugToggle" onchange="toggleDebug()" class="mr-2 h-4 w-4">
         除錯模式
       </label>
     </div>
 
+    <!-- 除錯提示區 -->
     <div id="debugBox" class="hidden bg-amber-50 border border-amber-200 text-amber-800 px-4 py-2 rounded mb-4 text-sm font-mono">
-      [除錯模式] 當前局答案：<span id="debugAnswer" class="font-bold"></span>
+      [除錯模式] 當前局真實答案：<span id="debugAnswer" class="font-bold"></span>
     </div>
 
+    <!-- 狀態列與開新局按鈕 -->
     <div class="flex justify-between items-center mb-4">
-      <span class="font-bold text-blue-700" id="currentRoundTitle">目前局數：第 1 局</span>
-      <button onclick="startNewGame()" class="bg-green-600 text-white px-3 py-1.5 rounded text-sm hover:bg-green-700">開新局</button>
+      <span class="font-bold text-blue-700 text-sm" id="currentRoundTitle">目前局數：第 1 局 (未完成)</span>
+      <button onclick="startNewGame()" class="bg-green-600 text-white px-3 py-1.5 rounded text-sm hover:bg-green-700 font-medium">開新局</button>
     </div>
 
+    <!-- 錯誤提示訊息 -->
     <div id="errorMsg" class="hidden text-red-500 text-sm mb-4 bg-red-50 p-2 rounded border border-red-200"></div>
 
+    <!-- 輸入區域 -->
     <form onsubmit="makeGuess(event)" class="flex gap-2 mb-6">
       <input type="text" id="guessInput" maxlength="4" placeholder="例如 0123" 
-             class="flex-1 border rounded px-3 py-2 font-mono tracking-widest focus:outline-none focus:ring-2 focus:ring-blue-500">
-      <button type="submit" id="submitBtn" class="bg-blue-600 text-white px-4 py-2 rounded font-medium hover:bg-blue-700">送出</button>
+             class="flex-1 border rounded px-3 py-2 text-lg font-mono tracking-widest focus:outline-none focus:ring-2 focus:ring-blue-500">
+      <button type="submit" id="submitBtn" class="bg-blue-600 text-white px-5 py-2 rounded font-medium hover:bg-blue-700">送出</button>
     </form>
 
+    <!-- 左右雙欄：當前局動態紀錄 vs 歷史局記錄 -->
     <div class="grid grid-cols-1 md:grid-cols-2 gap-4 border-t pt-4">
       <div>
-        <h2 class="font-bold text-slate-700 mb-2">當前局動態紀錄</h2>
-        <ul id="currentHistory" class="space-y-1 font-mono text-sm max-h-48 overflow-y-auto bg-slate-50 p-2 rounded"></ul>
+        <h2 class="font-bold text-slate-700 mb-2 text-sm">當前局猜測紀錄 (版本一特色)</h2>
+        <ul id="currentHistory" class="space-y-1 font-mono text-sm max-h-48 overflow-y-auto bg-slate-50 p-2 rounded border">
+          <li class="text-slate-400 italic">尚無猜測紀錄</li>
+        </ul>
       </div>
       <div>
-        <h2 class="font-bold text-slate-700 mb-2">歷史局記錄（舊局唯讀）</h2>
+        <h2 class="font-bold text-slate-700 mb-2 text-sm">歷史局記錄（舊局唯讀 - 版本二）</h2>
         <div id="roundsList" class="space-y-2 text-sm max-h-48 overflow-y-auto"></div>
       </div>
     </div>
@@ -49,11 +60,14 @@
     let games = [];
     let currentIdx = -1;
 
+    // 產生 4 位不重複數字（允許 0 開頭）
     function generateSecret() {
-      const nums = [0,1,2,3,4,5,6,7,8,9].sort(() => Math.random() - 0.5);
+      const nums = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9];
+      nums.sort(() => Math.random() - 0.5);
       return nums.slice(0, 4).join('');
     }
 
+    // 開新局（保留前一局至歷史列表中，標示未完成）
     function startNewGame() {
       const newGame = {
         id: games.length + 1,
@@ -65,14 +79,17 @@
       games.push(newGame);
       currentIdx = games.length - 1;
       
+      // 重置介面與除錯開關
       document.getElementById("debugToggle").checked = false;
       document.getElementById("debugBox").classList.add("hidden");
       document.getElementById("guessInput").disabled = false;
       document.getElementById("submitBtn").disabled = false;
       document.getElementById("guessInput").value = "";
+      document.getElementById("errorMsg").classList.add("hidden");
       renderUI();
     }
 
+    // 獨立除錯模式切換（不重置局數、不換答案、不增加次數）
     function toggleDebug() {
       const isChecked = document.getElementById("debugToggle").checked;
       const debugBox = document.getElementById("debugBox");
@@ -84,6 +101,15 @@
       }
     }
 
+    // 嚴格輸入驗證（版本一規則）
+    function validateInput(val) {
+      if (!val || val.length !== 4) return "請輸入恰好 4 位數字！";
+      if (!/^\d{4}$/.test(val)) return "只能包含數字！";
+      if (new Set(val).size !== 4) return "數字不能重複！";
+      return null;
+    }
+
+    // 送出猜測並計算 A/B
     function makeGuess(e) {
       e.preventDefault();
       const currentGame = games[currentIdx];
@@ -93,20 +119,28 @@
       const val = input.value.trim();
       const errorMsg = document.getElementById("errorMsg");
 
-      if (!/^\d{4}$/.test(val) || new Set(val).size !== 4) {
-        errorMsg.innerText = "請輸入 4 個不重複的數字！";
+      const err = validateInput(val);
+      if (err) {
+        errorMsg.innerText = err;
         errorMsg.classList.remove("hidden");
         return;
       }
       errorMsg.classList.add("hidden");
 
+      // 計算 A 與 B
       let a = 0, b = 0;
       for (let i = 0; i < 4; i++) {
         if (val[i] === currentGame.secret[i]) a++;
         else if (currentGame.secret.includes(val[i])) b++;
       }
 
-      currentGame.guesses.push({ val, result: `${a}A${b}`, time: new Date().toLocaleTimeString() });
+      currentGame.guesses.push({ 
+        val, 
+        result: `${a}A${b}`, 
+        time: new Date().toLocaleTimeString() 
+      });
+
+      // 若達成 4A0B 則鎖定本局
       if (a === 4) {
         currentGame.status = '已完成';
         document.getElementById("guessInput").disabled = true;
@@ -117,31 +151,39 @@
       renderUI();
     }
 
+    // 渲染畫面
     function renderUI() {
       const currentGame = games[currentIdx];
       document.getElementById("currentRoundTitle").innerText = `目前局數：第 ${currentGame.id} 局 (${currentGame.status})`;
       document.getElementById("debugAnswer").innerText = currentGame.secret;
 
+      // 渲染當前局紀錄
       const curList = document.getElementById("currentHistory");
-      curList.innerHTML = currentGame.guesses.map((g, idx) => `
-        <li class="flex justify-between border-b border-slate-200 py-0.5">
-          <span>#${idx+1} [${g.time}] ${g.val}</span>
-          <span class="font-bold text-blue-600">${g.result}</span>
-        </li>
-      `).join('') || '<li class="text-slate-400 italic">尚無紀錄</li>';
+      if (currentGame.guesses.length === 0) {
+        curList.innerHTML = '<li class="text-slate-400 italic">尚無猜測紀錄</li>';
+      } else {
+        curList.innerHTML = currentGame.guesses.map((g, idx) => `
+          <li class="flex justify-between border-b border-slate-200 py-1">
+            <span>#${idx+1}：${g.val}</span>
+            <span class="font-bold ${g.result === '4A0B' ? 'text-green-600' : 'text-blue-600'}">${g.result}</span>
+          </li>
+        `).join('');
+      }
 
+      // 渲染歷史局列表
       const roundsList = document.getElementById("roundsList");
       roundsList.innerHTML = games.map((g, idx) => `
-        <div class="p-2 border rounded ${idx === currentIdx ? 'bg-blue-50 border-blue-300' : 'bg-slate-50'}">
-          <div class="flex justify-between font-bold">
+        <div class="p-2.5 border rounded ${idx === currentIdx ? 'bg-blue-50 border-blue-300' : 'bg-slate-50'}">
+          <div class="flex justify-between font-bold text-xs">
             <span>第 ${g.id} 局</span>
             <span class="${g.status === '已完成' ? 'text-green-600' : 'text-amber-600'}">${g.status}</span>
           </div>
-          <div class="text-xs text-slate-500">共 ${g.guesses.length} 次猜測</div>
+          <div class="text-xs text-slate-500 mt-0.5">猜測次數：${g.guesses.length} 次</div>
         </div>
       `).join('');
     }
 
+    // 頁面載入時自動開始第一局
     window.onload = startNewGame;
   </script>
 </body>
